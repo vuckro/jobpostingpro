@@ -111,6 +111,7 @@ final class AdminPage
                     justify-content: center !important;
                     vertical-align: middle !important;
                 }
+                .wp-core-ui .button.jobpostingpro-btn-sync,
                 .jobpostingpro-btn-sync {
                     display: inline-flex !important;
                     align-items: center !important;
@@ -119,14 +120,21 @@ final class AdminPage
                     min-height: 48px !important;
                     padding: 0 28px !important;
                     line-height: 1 !important;
+                    vertical-align: middle !important;
                 }
+                .wp-core-ui .button.jobpostingpro-btn-sync .dashicons,
                 .jobpostingpro-btn-sync .dashicons {
                     font-size: 20px !important;
                     width: 20px !important;
                     height: 20px !important;
                     line-height: 1 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
                     margin: 0 !important;
+                    vertical-align: middle !important;
                 }
+                .wp-core-ui .button.jobpostingpro-btn-copy,
                 .jobpostingpro-btn-copy {
                     display: inline-flex !important;
                     align-items: center !important;
@@ -136,13 +144,32 @@ final class AdminPage
                     height: 36px !important;
                     padding: 0 16px !important;
                     line-height: 1 !important;
+                    vertical-align: middle !important;
+                    transition: border-color .2s, color .2s, background .2s !important;
                 }
+                .wp-core-ui .button.jobpostingpro-btn-copy .dashicons,
                 .jobpostingpro-btn-copy .dashicons {
                     font-size: 18px !important;
                     width: 18px !important;
                     height: 18px !important;
                     line-height: 1 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
                     margin: 0 !important;
+                    vertical-align: middle !important;
+                }
+                @keyframes jobpostingpro-spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .jobpostingpro-spin {
+                    animation: jobpostingpro-spin 1s linear infinite !important;
+                }
+                .wp-core-ui .button.jobpostingpro-copied {
+                    border-color: #00a32a !important;
+                    color: #00a32a !important;
+                    background: #f0fdf4 !important;
                 }
             </style>
             <h1 style="display:flex; align-items:center; gap:10px;">
@@ -199,7 +226,7 @@ final class AdminPage
                 <p style="color:#50575e;">
                     Cette action télécharge le flux XML, crée les nouvelles annonces, met à jour les existantes et passe en brouillon les annonces qui ont été retirées de JobPosting.pro.
                 </p>
-                <form method="post" action="">
+                <form method="post" action="" onsubmit="var btn=this.querySelector('.jobpostingpro-btn-sync'); if(btn){ var ic=btn.querySelector('.dashicons'); if(ic) ic.classList.add('jobpostingpro-spin'); var sp=btn.querySelector('span:last-child'); if(sp) sp.textContent='Synchronisation en cours...'; }">
                     <?php wp_nonce_field('jobpostingpro_sync_action', 'jobpostingpro_sync_nonce'); ?>
                     <button type="submit" name="jobpostingpro_manual_sync" class="button button-primary button-hero jobpostingpro-btn-sync">
                         <span class="dashicons dashicons-update"></span>
@@ -306,11 +333,41 @@ final class AdminPage
                 </p>
                 <div style="display:flex; gap:10px; align-items:center; margin:15px 0;">
                     <input type="text" id="jobpostingpro_webhook_url" readonly value="<?php echo esc_attr(\JobPostingPro\Rest\RestApi::get_webhook_url()); ?>" class="large-text code" style="background:#f6f7f7; font-size:13px; padding:6px 10px;">
-                    <button type="button" class="button button-secondary jobpostingpro-btn-copy" onclick="navigator.clipboard.writeText(document.getElementById('jobpostingpro_webhook_url').value); alert('URL du Webhook copiée dans le presse-papier !');">
+                    <button type="button" class="button button-secondary jobpostingpro-btn-copy" onclick="jobpostingproCopyWebhook(this);">
                         <span class="dashicons dashicons-admin-page"></span>
                         <span>Copier l'URL</span>
                     </button>
                 </div>
+                <script>
+                function jobpostingproCopyWebhook(btn) {
+                    var input = document.getElementById('jobpostingpro_webhook_url');
+                    if (!input) return;
+                    var copyVal = input.value;
+                    var applySuccess = function() {
+                        var icon = btn.querySelector('.dashicons');
+                        var text = btn.querySelector('span:last-child');
+                        if (icon) icon.className = 'dashicons dashicons-yes';
+                        if (text) text.textContent = 'Copié !';
+                        btn.classList.add('jobpostingpro-copied');
+                        setTimeout(function() {
+                            if (icon) icon.className = 'dashicons dashicons-admin-page';
+                            if (text) text.textContent = 'Copier l\'URL';
+                            btn.classList.remove('jobpostingpro-copied');
+                        }, 2200);
+                    };
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(copyVal).then(applySuccess).catch(function() {
+                            input.select();
+                            document.execCommand('copy');
+                            applySuccess();
+                        });
+                    } else {
+                        input.select();
+                        document.execCommand('copy');
+                        applySuccess();
+                    }
+                }
+                </script>
                 <ul style="color:#50575e; list-style:disc; margin-left:20px;">
                     <li><strong>Fréquence recommandée :</strong> Toutes les heures (ou toutes les 30 minutes).</li>
                     <li><strong>Méthode HTTP :</strong> <code>GET</code> (ou <code>POST</code>).</li>
