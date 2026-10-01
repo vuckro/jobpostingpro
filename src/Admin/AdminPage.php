@@ -256,14 +256,26 @@ final class AdminPage
                 </form>
             </div>
 
+            <!-- WEBHOOK CRON-JOB.ORG -->
+            <div style="background:#fff; border:1px solid #ccd0d4; padding:20px; border-radius:4px; margin-bottom:20px;">
+                <h2 style="margin-top:0;">Webhook externe (Cron-job.org)</h2>
+                <p style="color:#50575e;">
+                    Pour déclencher la synchronisation à distance via un service externe comme <strong>Cron-job.org</strong>, configurez une requête HTTP <code>GET</code> vers cette URL sécurisée :
+                </p>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="text" readonly value="<?php echo esc_attr(\JobPostingPro\Rest\RestApi::get_webhook_url()); ?>" class="large-text code" style="background:#f6f7f7;">
+                </div>
+                <p class="description">Chaque appel HTTP sur cette URL exécute la synchronisation et renvoie le bilan en JSON.</p>
+            </div>
+
             <!-- COMMANDE CRON O2SWITCH -->
             <div style="background:#fff; border:1px solid #ccd0d4; padding:20px; border-radius:4px;">
-                <h2 style="margin-top:0;">Automatisation serveur (cPanel O2Switch)</h2>
+                <h2 style="margin-top:0;">Automatisation serveur alternative (cPanel O2Switch)</h2>
                 <p style="color:#50575e;">
-                    Pour garantir que la synchronisation s'exécute même en cas de faible trafic sans dépendre du trafic web, vous pouvez ajouter une tâche Cron directe dans votre cPanel O2Switch :
+                    Vous pouvez également utiliser la commande WP-CLI directe sur le serveur :
                 </p>
                 <pre style="background:#f6f7f7; padding:12px; border-radius:3px; overflow-x:auto; font-family:monospace; border:1px solid #dcdcde;">/usr/local/bin/wp jobposting sync --path=<?php echo esc_html(ABSPATH); ?> > /dev/null 2>&1</pre>
-                <p class="description">Fréquence conseillée sur O2Switch : Toutes les heures ou 2 fois par jour (ex : <code>0 */2 * * *</code>).</p>
+                <p class="description">Fréquence conseillée sur O2Switch : Toutes les 2 heures (ex : <code>0 */2 * * *</code>).</p>
             </div>
         </div>
         <?php

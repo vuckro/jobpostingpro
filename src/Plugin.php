@@ -34,6 +34,9 @@ final class Plugin
         // Initialiser le planificateur Cron
         (new Cron\Scheduler())->register();
 
+        // Initialiser l'API REST pour les Webhooks externes (ex: Cron-job.org)
+        (new Rest\RestApi())->register();
+
         // Initialiser la commande WP-CLI
         if (defined('WP_CLI') && WP_CLI) {
             (new Cli\CliCommand())->register();
