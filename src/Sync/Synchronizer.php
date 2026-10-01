@@ -112,6 +112,9 @@ final class Synchronizer
                 }
             }
 
+            // 5. Nettoyage des éventuelles redirections Slim SEO conflictuelles
+            $this->cleanup_conflicting_redirects();
+
         } catch (Throwable $e) {
             $stats['status'] = 'error';
             $stats['errors'][] = $e->getMessage();
@@ -271,6 +274,44 @@ final class Synchronizer
                 'ID'          => $post_id,
                 'post_status' => 'draft',
             ]);
+        }
+    }
+
+    /**
+     * Nettoie les redirections Slim SEO conflictuelles pointant vers des offres actives.
+     */
+    private function cleanup_conflicting_redirects(): void
+    {
+        $redirects = get_option('ss_redirects', []);
+        if (!is_array($redirects) || empty($redirects)) {
+            return;
+        }
+
+        $active_jobs = get_posts([
+            'post_type'      => 'job',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+        ]);
+
+        $active_slugs = [];
+        foreach ($active_jobs as $j) {
+            $active_slugs[$j->post_name] = true;
+        }
+
+        $modified = false;
+        foreach ($redirects as $key => $rule) {
+            $from = trim($rule['from'] ?? '', '/');
+            if (str_starts_with($from, 'recrutement/')) {
+                $slug = substr($from, strlen('recrutement/'));
+                if (isset($active_slugs[$slug])) {
+                    unset($redirects[$key]);
+                    $modified = true;
+                }
+            }
+        }
+
+        if ($modified) {
+            update_option('ss_redirects', $redirects);
         }
     }
 }
