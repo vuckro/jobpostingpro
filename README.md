@@ -79,12 +79,23 @@ Déployer le dossier dans `wp-content/plugins/jobpostingpro` et l'activer :
 wp plugin activate jobpostingpro --path=/home/sc4appd9081/atyx.waaskit.site
 ```
 
-### 2. Tâche Cron serveur (cPanel O2Switch)
-Pour s'affranchir du trafic web et garantir une synchronisation ponctuelle, configurez une tâche cron dans votre cPanel :
+### 2. Automatisation officielle via Webhook (Cron-job.org)
+Le plugin est configuré en mode **100% Webhook externe**. Le WP-Cron interne est volontairement désactivé pour préserver les performances du site.
+
+Pour automatiser la synchronisation :
+1. Créez un compte ou connectez-vous sur [Cron-job.org](https://cron-job.org).
+2. Créez un nouveau cron job :
+   - **URL** : `https://atyx.waaskit.site/wp-json/jobpostingpro/v1/sync?key=VOTRE_CLE_SECRETE` (disponible dans *Offres d'emploi > Synchro JobPosting*).
+   - **Méthode** : `GET`
+   - **Fréquence** : Toutes les heures (ou toutes les 30 minutes).
+   - **Timeout** : 60 secondes.
+3. Chaque exécution appellera le Webhook de façon sécurisée et enregistrera le rapport d'exécution en base.
+
+### 3. Alternative serveur (cPanel O2Switch / SSH)
+En cas de besoin, vous pouvez également utiliser la commande WP-CLI :
 ```bash
 /usr/local/bin/wp jobposting sync --path=/home/sc4appd9081/atyx.waaskit.site > /dev/null 2>&1
 ```
-*Fréquence recommandée* : Toutes les 2 heures ou 2 fois par jour (`0 6,13 * * *`).
 
 ### 3. Exécution manuelle en ligne de commande
 ```bash

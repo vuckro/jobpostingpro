@@ -80,11 +80,7 @@ final class AdminPage
             update_option(Config::OPTION_REMOVED_ACTION, $action);
         }
 
-        if (isset($_POST['cron_frequency'])) {
-            $freq = in_array($_POST['cron_frequency'], ['hourly', 'twicedaily', 'daily'], true) ? $_POST['cron_frequency'] : 'hourly';
-            update_option(Config::OPTION_CRON_FREQUENCY, $freq);
-            Scheduler::reschedule();
-        }
+
 
         $redirect_url = add_query_arg([
             'post_type' => 'job',
@@ -100,7 +96,6 @@ final class AdminPage
     {
         $feed_url       = Config::get_feed_url();
         $removed_action = Config::get_removed_action();
-        $cron_freq      = Config::get_cron_frequency();
         $last_sync      = Config::get_last_sync();
 
         $published_count = (int) wp_count_posts('job')->publish;
@@ -240,13 +235,15 @@ final class AdminPage
                             </td>
                         </tr>
                         <tr>
-                            <th scope="row"><label for="cron_frequency">Fréquence du Cron WordPress</label></th>
+                            <th scope="row">Mode d'automatisation</th>
                             <td>
-                                <select name="cron_frequency" id="cron_frequency">
-                                    <option value="hourly" <?php selected($cron_freq, 'hourly'); ?>>Toutes les heures</option>
-                                    <option value="twicedaily" <?php selected($cron_freq, 'twicedaily'); ?>>Deux fois par jour (toutes les 12 heures)</option>
-                                    <option value="daily" <?php selected($cron_freq, 'daily'); ?>>Une fois par jour (toutes les 24 heures)</option>
-                                </select>
+                                <span style="display:inline-flex; align-items:center; gap:6px; background:#e7f5ea; color:#0e6224; padding:4px 10px; border-radius:3px; font-weight:600; font-size:12px;">
+                                    <span class="dashicons dashicons-yes-alt" style="font-size:16px; width:16px; height:16px;"></span>
+                                    100% Webhook Externe (Cron-job.org)
+                                </span>
+                                <p class="description" style="margin-top:6px;">
+                                    Le cron interne WordPress (WP-Cron) est volontairement désactivé pour ce plugin afin d'éviter tout ralentissement des visites. La synchronisation automatique est pilotée exclusivement par Cron-job.org via le Webhook ci-dessous.
+                                </p>
                             </td>
                         </tr>
                     </table>
@@ -256,26 +253,36 @@ final class AdminPage
                 </form>
             </div>
 
-            <!-- WEBHOOK CRON-JOB.ORG -->
-            <div style="background:#fff; border:1px solid #ccd0d4; padding:20px; border-radius:4px; margin-bottom:20px;">
-                <h2 style="margin-top:0;">Webhook externe (Cron-job.org)</h2>
+            <!-- WEBHOOK CRON-JOB.ORG (AUTOMATISATION OFFICIELLE) -->
+            <div style="background:#fff; border:1px solid #ccd0d4; padding:20px; border-radius:4px; margin-bottom:20px; border-left:4px solid #2271b1;">
+                <h2 style="margin-top:0; display:flex; align-items:center; gap:8px;">
+                    <span class="dashicons dashicons-rest-api"></span>
+                    Webhook externe officiel (Cron-job.org)
+                </h2>
                 <p style="color:#50575e;">
-                    Pour déclencher la synchronisation à distance via un service externe comme <strong>Cron-job.org</strong>, configurez une requête HTTP <code>GET</code> vers cette URL sécurisée :
+                    Pour automatiser la synchronisation sans dépendre des visites sur le site, créez un cron job sur <a href="https://cron-job.org" target="_blank" rel="noopener">Cron-job.org</a> avec une requête HTTP <code>GET</code> vers cette URL sécurisée :
                 </p>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="text" readonly value="<?php echo esc_attr(\JobPostingPro\Rest\RestApi::get_webhook_url()); ?>" class="large-text code" style="background:#f6f7f7;">
+                <div style="display:flex; gap:10px; align-items:center; margin:15px 0;">
+                    <input type="text" id="jobpostingpro_webhook_url" readonly value="<?php echo esc_attr(\JobPostingPro\Rest\RestApi::get_webhook_url()); ?>" class="large-text code" style="background:#f6f7f7; font-size:13px; padding:6px 10px;">
+                    <button type="button" class="button button-secondary" onclick="navigator.clipboard.writeText(document.getElementById('jobpostingpro_webhook_url').value); alert('URL du Webhook copiée dans le presse-papier !');">
+                        <span class="dashicons dashicons-clipboard" style="vertical-align:middle; font-size:16px; width:16px; height:16px;"></span>
+                        Copier l'URL
+                    </button>
                 </div>
-                <p class="description">Chaque appel HTTP sur cette URL exécute la synchronisation et renvoie le bilan en JSON.</p>
+                <ul style="color:#50575e; list-style:disc; margin-left:20px;">
+                    <li><strong>Fréquence recommandée :</strong> Toutes les heures (ou toutes les 30 minutes).</li>
+                    <li><strong>Méthode HTTP :</strong> <code>GET</code> (ou <code>POST</code>).</li>
+                    <li><strong>Timeout conseillé :</strong> 60 secondes (le temps d'importer le flux XML).</li>
+                </ul>
             </div>
 
-            <!-- COMMANDE CRON O2SWITCH -->
+            <!-- COMMANDE CRON O2SWITCH ALTERNATIVE -->
             <div style="background:#fff; border:1px solid #ccd0d4; padding:20px; border-radius:4px;">
-                <h2 style="margin-top:0;">Automatisation serveur alternative (cPanel O2Switch)</h2>
+                <h2 style="margin-top:0;">Automatisation serveur alternative (cPanel / SSH)</h2>
                 <p style="color:#50575e;">
-                    Vous pouvez également utiliser la commande WP-CLI directe sur le serveur :
+                    En cas de besoin, vous pouvez également déclencher la commande WP-CLI manuellement ou via cron système serveur :
                 </p>
                 <pre style="background:#f6f7f7; padding:12px; border-radius:3px; overflow-x:auto; font-family:monospace; border:1px solid #dcdcde;">/usr/local/bin/wp jobposting sync --path=<?php echo esc_html(ABSPATH); ?> > /dev/null 2>&1</pre>
-                <p class="description">Fréquence conseillée sur O2Switch : Toutes les 2 heures (ex : <code>0 */2 * * *</code>).</p>
             </div>
         </div>
         <?php

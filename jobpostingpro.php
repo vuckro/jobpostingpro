@@ -40,10 +40,10 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// Hooks d'activation et désactivation
+// Hooks d'activation et désactivation (mode Webhook externe exclusif)
 register_activation_hook(__FILE__, function (): void {
     Config::set_defaults();
-    Cron\Scheduler::schedule_event();
+    Cron\Scheduler::clear_event();
 });
 
 register_deactivation_hook(__FILE__, function (): void {
