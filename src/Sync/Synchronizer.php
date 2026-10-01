@@ -61,7 +61,7 @@ final class Synchronizer
             // 2. Indexation des offres existantes en base (job_reference => post_id)
             $existing_jobs = $this->get_existing_jobs();
 
-            $feed_references = [];
+            $feed_map = [];
 
             // 3. Traitement de chaque offre du flux
             foreach ($xml->job as $job_node) {
@@ -72,7 +72,7 @@ final class Synchronizer
                     continue;
                 }
 
-                $feed_references[] = $ref;
+                $feed_map[$ref] = true;
                 $stats['total_in_feed']++;
 
                 $content = $this->builder->build_content($mapped);
@@ -89,17 +89,26 @@ final class Synchronizer
                     }
                 } else {
                     // Nouvelle offre : création
-                    $this->create_job($mapped, $content, $excerpt);
-                    $stats['created']++;
+                    $new_id = $this->create_job($mapped, $content, $excerpt);
+                    if ($new_id > 0) {
+                        $existing_jobs[$ref] = [
+                            'post_id' => $new_id,
+                            'status'  => 'publish',
+                        ];
+                        $stats['created']++;
+                    }
                 }
             }
 
             // 4. Dépublication des offres retirées du flux
             foreach ($existing_jobs as $ref => $job_info) {
-                // Si l'offre n'est plus dans le flux et est actuellement publiée
-                if (!in_array($ref, $feed_references, true) && $job_info['status'] === 'publish') {
-                    $this->handle_removed_job($job_info['post_id'], $removed_action);
-                    $stats['removed']++;
+                $ref_str = (string) $ref;
+                // Si l'offre n'est pas dans le flux actuel
+                if (!isset($feed_map[$ref_str])) {
+                    if ($job_info['status'] === 'publish') {
+                        $this->handle_removed_job($job_info['post_id'], $removed_action);
+                        $stats['removed']++;
+                    }
                 }
             }
 
