@@ -20,8 +20,23 @@ final class ContentBuilder
     {
         $blocks = [];
 
+        $raw_societe = (string) ($data['desc_societe'] ?? '');
+        $raw_offre   = (string) ($data['desc_offre'] ?? '');
+        $raw_profil  = (string) ($data['desc_profil'] ?? '');
+
+        // Extraction intelligente du contexte projet s'il est logé au début de desc_offre
+        $extra_context = '';
+        if (preg_match('/^(.*?)(?:Les missions(?: du poste)?|Missions|Vos missions)\s*[:\-]?\s*(.*)$/is', $raw_offre, $m)) {
+            $potential_proj = trim($m[1]);
+            if (!empty($potential_proj) && (stripos($potential_proj, 'projet') !== false || stripos($potential_proj, 'cadre') !== false)) {
+                $extra_context = $potential_proj;
+                $raw_offre = $m[2];
+            }
+        }
+
         // 1. Contexte du projet & Enjeu
-        $context_paragraphs = $this->parse_context((string) ($data['desc_societe'] ?? ''));
+        $full_context_raw = $raw_societe . "\n" . $extra_context;
+        $context_paragraphs = $this->parse_context($full_context_raw);
         if (!empty($context_paragraphs)) {
             $blocks[] = "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Contexte du projet &amp; Enjeu</h2>\n<!-- /wp:heading -->";
             foreach ($context_paragraphs as $p) {
@@ -30,7 +45,7 @@ final class ContentBuilder
         }
 
         // 2. Vos missions au quotidien
-        $missions = $this->parse_bullet_points((string) ($data['desc_offre'] ?? ''));
+        $missions = $this->parse_bullet_points($raw_offre);
         if (!empty($missions)) {
             $blocks[] = "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Vos missions au quotidien</h2>\n<!-- /wp:heading -->";
             $items_html = '';
@@ -44,7 +59,7 @@ final class ContentBuilder
         }
 
         // 3. Profil & Compétences recherchées
-        $skills = $this->parse_bullet_points((string) ($data['desc_profil'] ?? ''));
+        $skills = $this->parse_bullet_points($raw_profil);
         if (!empty($skills)) {
             $blocks[] = "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Profil &amp; Compétences recherchées</h2>\n<!-- /wp:heading -->";
             $items_html = '';
@@ -60,11 +75,12 @@ final class ContentBuilder
         // 4. Cadre de travail & Avantages
         $blocks[] = "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Cadre de travail &amp; Avantages</h2>\n<!-- /wp:heading -->";
         $blocks[] = "<!-- wp:list {\"className\":\"atyx-job-checklist\"} -->\n<ul class=\"wp-block-list atyx-job-checklist\">\n"
-            . "<li>Rémunération attractive selon profil et expérience</li>\n"
-            . "<li>Missions à forte visibilité auprès des directions de projets</li>\n"
-            . "<li>Télétravail selon organisation de mission</li>\n"
-            . "<li>Mutuelle d'entreprise & participation aux transports</li>\n"
-            . "<li>Accompagnement de carrière et développement des compétences</li>\n"
+            . "<li>Rémunération attractive selon profil et expérience (Convention SYNTEC)</li>\n"
+            . "<li>Missions d'envergure auprès des grands donneurs d'ordres industriels</li>\n"
+            . "<li>Organisation du travail flexible (télétravail selon organisation de mission)</li>\n"
+            . "<li>Mutuelle d'entreprise & prévoyance haut de gamme</li>\n"
+            . "<li>Carte restaurant & participation aux frais de transport</li>\n"
+            . "<li>Accompagnement de carrière de proximité et formations certifiantes</li>\n"
             . "</ul>\n<!-- /wp:list -->";
 
         return implode("\n\n", $blocks);
@@ -78,7 +94,8 @@ final class ContentBuilder
      */
     public function build_excerpt(array $data): string
     {
-        $context = $this->clean_text((string) ($data['desc_societe'] ?? ''));
+        $raw_societe = (string) ($data['desc_societe'] ?? '');
+        $context = $this->clean_text($raw_societe);
         
         // Supprimer les intitulés courants
         $context = preg_replace('/^(L\'enjeu|Le projet)\s*[:\-]?\s*/i', '', $context) ?? $context;
@@ -117,11 +134,19 @@ final class ContentBuilder
             if (empty($line)) {
                 continue;
             }
+
             // Ignorer les titres isolés de type "L'enjeu" ou "Le projet"
-            if (preg_match('/^(L\'enjeu|Le projet)\s*$/i', $line)) {
+            if (preg_match('/^(L\'enjeu|Le projet)\s*[:\-]?\s*$/i', $line)) {
                 continue;
             }
-            $paragraphs[] = $line;
+
+            // Retirer un éventuel préfixe en début de paragraphe
+            $line = preg_replace('/^(L\'enjeu|Le projet)\s*[:\-]\s*/i', '', $line) ?? $line;
+            $line = trim($line);
+
+            if (!empty($line)) {
+                $paragraphs[] = $line;
+            }
         }
 
         return $paragraphs;
@@ -148,13 +173,19 @@ final class ContentBuilder
             if (empty($line)) {
                 continue;
             }
-            // Ignorer les titres de section généraux
-            if (preg_match('/^(Missions|Les missions( du poste)?|Les compétences( recherchées)?)\s*$/i', $line)) {
+
+            // Ignorer les titres de section généraux ou titres résiduels
+            if (preg_match('/^(Missions|Les missions( du poste)?|Vos missions|Les compétences( recherchées)?|Profil recherché|Le projet|L\'enjeu)\s*[:\-]?\s*$/i', $line)) {
                 continue;
             }
 
-            // Retirer les puces en tête de ligne (-, *, •, ;, >)
-            $item = preg_replace('/^[•\-\*\;\>]\s*/u', '', $line);
+            // Si la ligne commence par "Dans le cadre de..." et qu'elle s'est glissée ici au tout début, on l'ignore comme puce
+            if (preg_match('/^Dans le cadre (de|d\')/i', $line) && count($points) === 0) {
+                continue;
+            }
+
+            // Retirer les puces en tête de ligne (-, *, •, ;, >, –, —)
+            $item = preg_replace('/^[•\-\*\;\>–—]\s*/u', '', $line);
             $item = trim((string) $item);
 
             // Retirer le point-virgule final si présent
@@ -169,12 +200,30 @@ final class ContentBuilder
     }
 
     /**
-     * Décode le HTML et convertit les <br> en retours à la ligne.
+     * Décode le HTML, supprime les balises et convertit les sauts de ligne.
      */
     private function clean_text(string $html): string
     {
-        $text = str_ireplace(['<br />', '<br/>', '<br>', '</p>'], "\n", $html);
+        // Remplacement des balises de saut de ligne HTML par des retours chariot
+        $text = str_ireplace(['<br />', '<br/>', '<br>', '</p>', '</div>', '</li>'], "\n", $html);
         $text = strip_tags($text);
-        return html_entity_decode(trim($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Décodage des entités HTML (&oelig;, &nbsp;, etc.)
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Nettoyage des espaces insécables et caractères invisibles (zero-width)
+        $text = str_replace(
+            ["\xc2\xa0", "\u{00A0}", "\u{200B}", "\u{200C}", "\u{200D}", "\u{FEFF}"],
+            ' ',
+            $text
+        );
+
+        // Nettoyage des espaces multiples par ligne
+        $lines = explode("\n", $text);
+        $cleaned_lines = array_map(function (string $l): string {
+            return trim(preg_replace('/[ \t]+/', ' ', $l) ?? $l);
+        }, $lines);
+
+        return trim(implode("\n", $cleaned_lines));
     }
 }
