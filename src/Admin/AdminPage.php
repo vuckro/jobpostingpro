@@ -102,9 +102,51 @@ final class AdminPage
         $draft_count     = (int) wp_count_posts('job')->draft;
 
         ?>
-        <div class="wrap" style="max-width: 1000px;">
+        <div class="wrap jobpostingpro-wrap" style="max-width: 1000px;">
+            <style>
+                .jobpostingpro-wrap .dashicons {
+                    line-height: 1 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    vertical-align: middle !important;
+                }
+                .jobpostingpro-btn-sync {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 10px !important;
+                    min-height: 48px !important;
+                    padding: 0 28px !important;
+                    line-height: 1 !important;
+                }
+                .jobpostingpro-btn-sync .dashicons {
+                    font-size: 20px !important;
+                    width: 20px !important;
+                    height: 20px !important;
+                    line-height: 1 !important;
+                    margin: 0 !important;
+                }
+                .jobpostingpro-btn-copy {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 6px !important;
+                    white-space: nowrap !important;
+                    height: 36px !important;
+                    padding: 0 16px !important;
+                    line-height: 1 !important;
+                }
+                .jobpostingpro-btn-copy .dashicons {
+                    font-size: 18px !important;
+                    width: 18px !important;
+                    height: 18px !important;
+                    line-height: 1 !important;
+                    margin: 0 !important;
+                }
+            </style>
             <h1 style="display:flex; align-items:center; gap:10px;">
-                <span class="dashicons dashicons-update" style="font-size:32px; width:32px; height:32px;"></span>
+                <span class="dashicons dashicons-update" style="font-size:30px; width:30px; height:30px;"></span>
                 Synchronisation JobPosting.pro
             </h1>
 
@@ -159,9 +201,9 @@ final class AdminPage
                 </p>
                 <form method="post" action="">
                     <?php wp_nonce_field('jobpostingpro_sync_action', 'jobpostingpro_sync_nonce'); ?>
-                    <button type="submit" name="jobpostingpro_manual_sync" class="button button-primary button-hero" style="display:inline-flex; align-items:center; gap:8px;">
+                    <button type="submit" name="jobpostingpro_manual_sync" class="button button-primary button-hero jobpostingpro-btn-sync">
                         <span class="dashicons dashicons-update"></span>
-                        Synchroniser maintenant
+                        <span>Synchroniser maintenant</span>
                     </button>
                 </form>
             </div>
@@ -264,9 +306,9 @@ final class AdminPage
                 </p>
                 <div style="display:flex; gap:10px; align-items:center; margin:15px 0;">
                     <input type="text" id="jobpostingpro_webhook_url" readonly value="<?php echo esc_attr(\JobPostingPro\Rest\RestApi::get_webhook_url()); ?>" class="large-text code" style="background:#f6f7f7; font-size:13px; padding:6px 10px;">
-                    <button type="button" class="button button-secondary" onclick="navigator.clipboard.writeText(document.getElementById('jobpostingpro_webhook_url').value); alert('URL du Webhook copiée dans le presse-papier !');">
-                        <span class="dashicons dashicons-clipboard" style="vertical-align:middle; font-size:16px; width:16px; height:16px;"></span>
-                        Copier l'URL
+                    <button type="button" class="button button-secondary jobpostingpro-btn-copy" onclick="navigator.clipboard.writeText(document.getElementById('jobpostingpro_webhook_url').value); alert('URL du Webhook copiée dans le presse-papier !');">
+                        <span class="dashicons dashicons-admin-page"></span>
+                        <span>Copier l'URL</span>
                     </button>
                 </div>
                 <ul style="color:#50575e; list-style:disc; margin-left:20px;">
